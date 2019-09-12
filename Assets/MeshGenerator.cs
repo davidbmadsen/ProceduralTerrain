@@ -4,6 +4,7 @@
 public class MeshGenerator : MonoBehaviour
 {   
     NoiseGenerator noiseGen;
+    RiverGenerator riverGen;
     Mesh mesh;
 
     public Vector3[] vertices;
@@ -18,6 +19,7 @@ public class MeshGenerator : MonoBehaviour
         // Instantiate objects
         mesh = new Mesh();
         noiseGen = ScriptableObject.CreateInstance<NoiseGenerator>();
+        riverGen = ScriptableObject.CreateInstance<RiverGenerator>();
 
         GetComponent<MeshFilter>().mesh = mesh;
 
@@ -26,28 +28,32 @@ public class MeshGenerator : MonoBehaviour
     }
 
 
-    // Method for creating 
+    // Method for creating mesh
     void CreateMesh()
     {
 
-        vertices = new Vector3[(xSize + 1) * (zSize + 1)];
+        vertices = riverGen.GenerateRiver(xSize, zSize);
 
+        /* 
+        // Generate heightmap from noise function
         for (int i = 0, z = 0; z <= zSize; z++)
         {
             for (int x = 0; x <= xSize; x++)
             {
-                float y = noiseGen.GenerateNoise(x, z, 1f, 0.5f, 3, 60f, true);
+                float y = noiseGen.GenerateNoise(x, z, 1f, 0.5f, 3, 60f, false);
                 vertices[i] = new Vector3(x, y, z);
                 i++;
             }
         }
+        */
 
-        
-        int vert = 0; // current vertex
-        int tris = 0; // 
+        // Indices to keep track of triangles and vertices
+        int vert = 0;
+        int tris = 0;
 
         triangles = new int[xSize * zSize * 6]; // Array that stores triangle points
 
+        // Generate triangles
         for (int z = 0; z < zSize; z++)
         {
             for (int x = 0; x < xSize; x++)
