@@ -4,25 +4,28 @@
 public class MeshGenerator : MonoBehaviour
 {   
     NoiseGenerator noiseGen;
-    RiverGenerator riverGen;
+    RiverGen2 rivGen2;
+    // RiverGenerator riverGen;
     Mesh mesh;
 
     public Vector3[] vertices;
     public int[] triangles;
+    public int[,] arbitraryHeighmap;
+
 
     // Mesh dimensions (max size 255x255)
-    public int xSize = 255;
-    public int zSize = 255;
+    public int xSize = 50;
+    public int zSize = 50;
 
     void Start()
     {
-        // Instantiate objects
+        // Instantiate objects to draw the mesh
         mesh = new Mesh();
         noiseGen = ScriptableObject.CreateInstance<NoiseGenerator>();
-        riverGen = ScriptableObject.CreateInstance<RiverGenerator>();
+        rivGen2 = ScriptableObject.CreateInstance<RiverGen2>();
 
         GetComponent<MeshFilter>().mesh = mesh;
-
+        
         CreateMesh();       // Generate the terrain mesh
         UpdateMesh();       // Updates mesh with vertices
     }
@@ -32,20 +35,27 @@ public class MeshGenerator : MonoBehaviour
     void CreateMesh()
     {
 
-        vertices = riverGen.GenerateRiver(xSize, zSize);
+        // vertices = riverGen.GenerateRiver(xSize, zSize);
+        vertices = new Vector3[(xSize + 1) * (zSize + 1)];
+        
 
-        /* 
-        // Generate heightmap from noise function
-        for (int i = 0, z = 0; z <= zSize; z++)
+        // Section for generating the finished mesh.
+
+        // Generate height matrix
+        arbitraryHeighmap = rivGen2.riverHeightMap(xSize, zSize);
+
+
+        // Generate vectors for terrain from heightmap matrix
+        for (int i= 0, z = 0; z <= zSize; z++)
         {
             for (int x = 0; x <= xSize; x++)
             {
-                float y = noiseGen.GenerateNoise(x, z, 1f, 0.5f, 3, 60f, false);
+                float y = noiseGen.GenerateNoise(x, z, 1f, 2f, 4, 30f, true);
                 vertices[i] = new Vector3(x, y, z);
                 i++;
             }
         }
-        */
+        
 
         // Indices to keep track of triangles and vertices
         int vert = 0;
@@ -84,20 +94,4 @@ public class MeshGenerator : MonoBehaviour
     
         mesh.RecalculateNormals();  // Fix lighting
     }
-
-    /* // Draw gizmos to represent vertices  
-    private void OnDrawGizmos()
-    {
-
-        if (vertices == null)
-            return;
-            
-         
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            Gizmos.DrawSphere(vertices[i], 0.1f);
-        }
-        
-    }
-    */ 
 }
