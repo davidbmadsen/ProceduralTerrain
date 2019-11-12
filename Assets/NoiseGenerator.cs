@@ -6,7 +6,7 @@ public class NoiseGenerator : ScriptableObject
     // noise and feeds it to the native Unity Perlin noise function, and outputs a Vector3
     // array of vertices for mesh generation.
 
-    public float GenerateNoise(int x, int z, float base_scale, float frequency, int octaves, float amplitude, bool floor=false)
+    public float GenerateNoise(int x, int z, float base_scale, float frequency, int octaves, float amplitude, float offset, bool floor=false)
     {
 
         float noiseval = 0f;
@@ -17,17 +17,17 @@ public class NoiseGenerator : ScriptableObject
         // Generate noise stack, looping through each octave
         for (int i = 0; i <= octaves; i++)
         {
-            float scale = (base_scale * 0.01f) * frequency;                             // Noise scale
+            float scale = (base_scale * 0.01f) * frequency;            // Noise scale
 
             noiseval += (Mathf.PerlinNoise(x * scale, z * scale) - 0.4f) * amplitude;
 
-            frequency *= lacunarity;                                                    // Increases frequency per octave
-            amplitude *= persistence;                                                   // Decrease amplitude per octave
+            frequency *= lacunarity;                                   // Increases frequency per octave
+            amplitude *= persistence;                                  // Decrease amplitude per octave
 
         }
 
         if (floor) {
-            return Mathf.Max(0f, noiseval);
+            return Mathf.Max(0f, offset + noiseval);
         }
         else
             return noiseval;

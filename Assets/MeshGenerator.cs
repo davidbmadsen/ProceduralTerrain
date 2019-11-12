@@ -3,29 +3,31 @@
 [RequireComponent(typeof(MeshFilter))]
 public class MeshGenerator : MonoBehaviour
 {   
+    // Objects used to generate terrain features
     NoiseGenerator noiseGen;
-    RiverGen2 rivGen2;
-    // RiverGenerator riverGen;
+    HeightMatrix heightMatrix;
+    TerrainNode[,] heightMap, zeroMap;
     Mesh mesh;
 
+    // Mesh variables
     public Vector3[] vertices;
     public int[] triangles;
-    public int[,] arbitraryHeighmap;
+
+    // Heightmap variables
+    public float[,] featureOne, featureTwo;
 
 
     // Mesh dimensions (max size 255x255)
-    public int xSize = 50;
-    public int zSize = 50;
+    public int xSize = 255;
+    public int zSize = 255;
 
     void Start()
     {
-        // Instantiate objects to draw the mesh
+        // Instantiate objects used to draw the mesh
         mesh = new Mesh();
-        noiseGen = ScriptableObject.CreateInstance<NoiseGenerator>();
-        rivGen2 = ScriptableObject.CreateInstance<RiverGen2>();
-
         GetComponent<MeshFilter>().mesh = mesh;
         
+
         CreateMesh();       // Generate the terrain mesh
         UpdateMesh();       // Updates mesh with vertices
     }
@@ -39,24 +41,41 @@ public class MeshGenerator : MonoBehaviour
         vertices = new Vector3[(xSize + 1) * (zSize + 1)];
         
 
-        // Section for generating the finished mesh.
+        // Instantiate height matrix
+        heightMatrix = ScriptableObject.CreateInstance<HeightMatrix>();
 
-        // Generate height matrix
-        arbitraryHeighmap = rivGen2.riverHeightMap(xSize, zSize);
+        // Generate the empty terrain height map zeroMap
+        // zeroMap = heightMatrix.GenerateHeightMatrix(xSize, zSize);
+        zeroMap = heightMatrix.GenerateZeroMap(xSize, zSize);
+        heightMap = heightMatrix.GenerateNaturalRivers(zeroMap);
+        //heightMap = heightMatrix.GeneratePyramidMountains(zeroMap, false);
 
+
+        // Generate river and store in featureOne
+        //featureOne = heightMatrix.GenerateMountains(zeroMap);
+        //featureOne = heightMatrix.GenerateNaturalRivers(zeroMap);
+        // Generate mountains and store in featureTwo
+        // featureTwo = heightMatrix.GeneratePyramidMountains(zeroMap);
+        // Use merge function to merge mountains and river 
+        // heightMap = heightMatrix.MergeTerrainMaps(featureOne, featureTwo);
+
+
+        // --- Vector creation part (note to self: dont touch) ---
 
         // Generate vectors for terrain from heightmap matrix
-        for (int i= 0, z = 0; z <= zSize; z++)
+        float height;
+        for (int i = 0, z = 0; z <= zSize; z++)
         {
             for (int x = 0; x <= xSize; x++)
-            {
-                float y = noiseGen.GenerateNoise(x, z, 1f, 2f, 4, 30f, true);
-                vertices[i] = new Vector3(x, y, z);
+            {   
+                // Extract each point from the matrix and create a Vector3 for vertices
+                height = heightMap[x,z].height;
+                vertices[i] = new Vector3(x, height, z);
                 i++;
             }
         }
         
-
+        // Code courtesy of <> (http:www.youtube.com/watch?v=something)
         // Indices to keep track of triangles and vertices
         int vert = 0;
         int tris = 0;
