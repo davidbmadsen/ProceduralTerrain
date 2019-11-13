@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using static TerrainNode;
 
@@ -6,6 +7,9 @@ public class HeightMatrix : ScriptableObject
 {
     // General class for generating the heigh matrix, which describes the height of all points on the mesh
     // for a given feature.
+
+    // Declare objects
+    public System.Random rnd = new System.Random();
 
     public TerrainNode[,] GenerateZeroMap(int xSize, int zSize)
     {   /* 
@@ -64,10 +68,7 @@ public class HeightMatrix : ScriptableObject
         int xSize, zSize, size, min, max, mtnsLength;
         int[] centerpoint, mtnPos;
         int[,] mountainsPos;
-        float height;
 
-        // Declare objects
-        System.Random rnd = new System.Random();
 
         // Get map sizes from zeroMap
         xSize = heightMap.GetLength(0);
@@ -88,7 +89,6 @@ public class HeightMatrix : ScriptableObject
         mtnPos = new int[2];
         mtnsLength = mountainsPos.GetLength(1);
 
-        //mountainsPos[0] = mountainsPos[1] = {   96, 116, 33, 183, 161, 104, 205, 55, 151, 122, 120, 143, 217, 44, 52, 181, 132, 199, 103, 200, 224, 74, 76, 203, 162, 70, 108, 177, 149, 212, 226, 148, 184, 154, 131, 173, 121, 220, 209, 154, 70, 145, 162, 101, 181, 56, 44, 240, 59, 100, 119, 176, 207, 206, 58, 86, 71, 37, 240, 154, 113, 146, 75, 145, 217, 117, 97, 122, 227, 135, 209, 51, 220, 144, 160, 198, 236, 136, 139, 108, 160, 104, 225, 196, 19, 88, 112, 91, 72, 231, 240, 69, 131, 62, 16, 114, 61, 55, 180, 16, 38, 54, 146, 230, 139, 82, 52, 231, 51, 236, 16, 127, 140, 189, 151, 127, 79, 114, 119, 31, 172, 17, 129, 200, 150, 236, 158, 105, 210, 88, 231, 93, 19, 214, 208, 187, 23, 25, 238, 30, 32, 60, 225, 15, 25, 66, 190, 195, 174, 150, 70, 230, 43, 216, 206, 221, 188, 65, 234, 219, 236, 138, 39, 79, 149, 113, 216, 169, 21, 76, 84, 235, 208, 194, 44, 39, 89, 193, 236, 225, 169, 66, 111, 91, 216, 183, 187, 37, 126, 57, 68, 56, 102, 174, 60, 122, 169, 95, 240, 37   };
         
         if (randomMountains){
             
@@ -103,8 +103,7 @@ public class HeightMatrix : ScriptableObject
         // Generate the mountains
         for (int i = 0; i < mtnsLength; i++){
             size = rnd.Next(5, 20);
-            mtnPos[0] = mountainsPos[0,i];
-            mtnPos[1] = mountainsPos[1,i];
+            mtnPos = new int[2] { mountainsPos[0,i], mountainsPos[1,i] };
             heightMap = PyramidGen(heightMap, mtnPos, size);
         }
 
@@ -142,16 +141,13 @@ public class HeightMatrix : ScriptableObject
     public TerrainNode[,] GenerateNaturalRivers(TerrainNode[,] heightMap){
 
         // Declare variables
-        int[] startPoint, endPoint, middlePoint;
+        int[] startPoint, endPoint;
         float[] depth;
         int xSize, zSize;
         
         // Get map sizes from zeroMap
         xSize = heightMap.GetLength(0);
         zSize = heightMap.GetLength(1);
-
-        // Declare objects
-        System.Random rnd = new System.Random();
 
         // Pick random start- and endpoint 
         startPoint = new int[2] { rnd.Next(15,xSize -16), rnd.Next(15,zSize -16) };
@@ -170,7 +166,7 @@ public class HeightMatrix : ScriptableObject
         // Declare variables
         int[] middlePoint;
         float[] depthOne, depthTwo;
-        float middleDepth, length, scale, zDiff, xDiff, angle, middleVal, branchDeviation;
+        float middleDepth, length, zDiff, xDiff, angle, middleVal, branchDeviation;
         
         middlePoint = new int[2];
 
@@ -240,7 +236,7 @@ public class HeightMatrix : ScriptableObject
         // Declare variables
         int[,] profile;
         int dims;
-
+    
         // Center the river bed
         point = new int[2] { point[0] - 3, point[1] - 3};
 
@@ -265,8 +261,9 @@ public class HeightMatrix : ScriptableObject
 
         return heightMap;
     }
-
-    public TerrainNode[,] MergeTerrainMaps(TerrainNode[,] heightMapOne, TerrainNode[,] heightMapTwo){
+    
+    public TerrainNode[,] MergeTerrainMaps(List<TerrainNode[,]> TerrainFeatures){
+        
         /*
         Function for merging terrain heightMaps
         Input: Featuremaps to be merged
@@ -276,44 +273,162 @@ public class HeightMatrix : ScriptableObject
         */
 
         // Declare variables
-        int xSize, zSize;
-        float a, b;
-        float[,] mergedHeightMap;
-
+      
+        int xSize, zSize, xLimit, zLimit, kernelSize, priorityIndex, currentPriorityIndex;
+        float[,] kernel;
+        float sum;
+        float[,] convolutedValues;
         
-        // Get map sizes from zeroMap
-        xSize = heightMapOne.GetLength(0);
-        zSize = heightMapOne.GetLength(1);
+        TerrainNode[,] mergedHeightMap;
 
-        // Initialize final height map array
-        // mergedHeightMap = new float[xSize + 1, zSize + 1];
+        // Get map sizes from the first terrain feature (assuming all features are the same size)
+        xSize = TerrainFeatures[0].GetLength(0);
+        zSize = TerrainFeatures[0].GetLength(1);
 
+        // Initialize merged heightMap
+        mergedHeightMap = GenerateZeroMap(xSize, zSize);
 
-        // Compare each element
+        // Stack terrain based on priority
+        var priority = new List<string> { "river", "mountain", "null" };
+        
+        
         for (int x = 0; x < xSize; x++){
             for (int z = 0; z < zSize; z++){
-                // Some logic that merges terrain features
-                // heightMap[x,z] = 0 means no feature is present
-                // heightMap[x,z] > 0 means the point is terrain
-                // heightMap[x,z] < 0 means the point is riverbed
-
-                a = heightMapOne[x,z];
-                b = heightMapTwo[x,z];
-
-                // Check for river
-                if (a < 0){
-                    mergedHeightMap[x,z] = a;
-                }
-                // Else it's mountain (aka b)
-                else{
-                    mergedHeightMap[x,z] = b;
-                }
                 
+                // Add all current types to types list
+                var types = new List<string>();
+                foreach (TerrainNode[,] terrainFeature in TerrainFeatures){
+                    types.Add(terrainFeature[x,z].type);
+                }
+
+                // From types, find highest priority type and retrieve its index 
+                // (this is the point we want to write to merged map)
+
+                // Initialize feature priority
+                priorityIndex = 0;
+                // Set current priority to some high number
+                currentPriorityIndex = 100;
+
+                // Run through types list to find point with highest priority
+                for (int i = 0; i < types.Count; i++){
+
+                    if (priority.IndexOf(types[i]) < currentPriorityIndex){
+                        
+                        // Update priority index and current priority index if found better value
+                        currentPriorityIndex = priority.IndexOf(types[i]);
+                        priorityIndex = i;
+                    }
+                }
+                // Write this point to the merged height map
+                mergedHeightMap[x,z].height = TerrainFeatures[priorityIndex][x,z].height;
+                mergedHeightMap[x,z].type = TerrainFeatures[priorityIndex][x,z].type;
+                
+            }
+                
+        }
+        
+        
+        // -- Kernel filtering to merge terrain --
+
+        // Write merged heightmap data to new matrix
+
+        var filteredHeightMap = new float[xSize, zSize];
+
+        for (int x = 0; x < xSize; x++){
+            for (int z = 0; z < zSize; z++){
+                filteredHeightMap[x,z] = 0;
+            }
+        }
+        // Define kernel data
+        kernel = new float[3,3] { 
+            {1, 1, 1},
+            {1, 1, 1},
+            {1, 1, 1,}
+            };
+        kernelSize = kernel.GetLength(0);
+        convolutedValues = new float[kernelSize, kernelSize];
+
+        // Limits to avoid array out of bounds errors
+        xLimit = Mathf.FloorToInt(kernel.GetLength(0));
+        zLimit = Mathf.FloorToInt(kernel.GetLength(1));
+
+        // Run over all the points on the map
+        for (int x = xLimit; x < (xSize - xLimit); x++){
+            for (int z = zLimit; z < (zSize - zLimit); z++){
+                if (mergedHeightMap[x,z].type == "river"){
+                    // Loop through kernel
+                    for (int i = 0; i < kernelSize; i++){
+                        for (int j = 0; j < kernelSize; j++){
+                            // Calculate convoluted values
+                            convolutedValues[i,j] = mergedHeightMap[x + (i - xLimit), z + (i - zLimit)].height * kernel[i,j];
+
+                        }
+                    }
+                    // Average the convoluted values
+                    sum = 0;
+                    for (int i = 0; i < kernelSize; i++){
+                        for (int j = 0; j < kernelSize; j++){
+                            // Calculate convoluted values
+                            sum += convolutedValues[i,j];
+
+                        }
+                    }
+                    sum /= Mathf.Pow(kernelSize, 2);
+
+                    // Apply the avg to the points height
+                    filteredHeightMap[x,z] = sum;
+                }
+                else {
+                    filteredHeightMap[x,z] = mergedHeightMap[x,z].height;
+                }
+            }
+        
+        }
+        
+        for (int x = 0; x < xSize; x++){
+            for (int z = 0; z < zSize; z++){
+                mergedHeightMap[x,z].height = filteredHeightMap[x,z];
             }
         }
 
 
-
         return mergedHeightMap;
+
+        
+        /*
+
+        kernel = new int[7,7] { 
+            {1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1}
+            };
+
+
+        for (int x = 0; x < xSize; x++){
+            for (int z = 0; z < zSize; z++){
+                // Check if current point is river, otherwise jump to next
+                if (TerrainFeatures[0][x,z].type == "river"){
+                    
+                    // Start 
+                    for (int i = 0; i < kernel.GetLength(0); i++){
+                        for (int j = 0; j < kernel.GetLength(1); j++){
+                            if (TerrainFeatures[0][x + (i - 3),z + (j - 3)].type != "river"){
+                                
+                                // Set the points around to riverbank if they are null with the appropriate height
+                                TerrainFeatures[0][x + (i - 3),z + (j - 3)].height = 1f;
+                                TerrainFeatures[0][x + (i - 3),z + (j - 3)].type = "riverbank";
+                            }
+                        }
+                    }
+                }
+            }   
+        }
+         */
     }
-}
+    
+}   
+
