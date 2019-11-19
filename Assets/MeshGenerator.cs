@@ -48,16 +48,16 @@ public class MeshGenerator : MonoBehaviour
         zeroMapTwo = heightMatrix.GenerateZeroMap(xSize, zSize);
         zeroMapThree = heightMatrix.GenerateZeroMap(xSize, zSize);
 
-        riverMap = heightMatrix.GenerateNaturalRivers(zeroMapOne);
-        riverMap2 = heightMatrix.GenerateNaturalRivers(zeroMapThree);
-        mountainMap = heightMatrix.GeneratePyramidMountains(zeroMapTwo, false);
+        riverMap = heightMatrix.GenerateNaturalRivers(zeroMapOne, 10, 0);
+        //riverMap2 = heightMatrix.GenerateNaturalRivers(zeroMapThree);
+        mountainMap = heightMatrix.GenerateNoisyMountains(zeroMapTwo);
 
 
-        List<TerrainNode[,]> TerrainFeatures = new List<TerrainNode[,]> { riverMap, riverMap2, mountainMap };
+        List<TerrainNode[,]> TerrainFeatures = new List<TerrainNode[,]> { riverMap, mountainMap };
         
         
         // Use merge function to merge mountains and river 
-        heightMap = heightMatrix.MergeTerrainMaps(TerrainFeatures);
+        heightMap = heightMatrix.MergeTerrainMaps(TerrainFeatures, true);
         
         // --- Vector creation part (note to self: dont touch) ---
 

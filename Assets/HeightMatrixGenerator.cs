@@ -138,7 +138,7 @@ public class HeightMatrix : ScriptableObject
 
     }
 
-    public TerrainNode[,] GenerateNaturalRivers(TerrainNode[,] heightMap){
+    public TerrainNode[,] GenerateNaturalRivers(TerrainNode[,] heightMap, float startDepth, float endDepth){
 
         // Declare variables
         int[] startPoint, endPoint;
@@ -152,7 +152,7 @@ public class HeightMatrix : ScriptableObject
         // Pick random start- and endpoint 
         startPoint = new int[2] { rnd.Next(15,xSize -16), rnd.Next(15,zSize -16) };
         endPoint = new int[2] { rnd.Next(15,xSize -16), rnd.Next(15,zSize -16)};
-        depth = new float[2] { 0, -5 };
+        depth = new float[2] { startDepth, endDepth };
         
         // Start recursion
         heightMap = RecursiveRiverGen(heightMap, startPoint, endPoint, depth);
@@ -262,7 +262,7 @@ public class HeightMatrix : ScriptableObject
         return heightMap;
     }
     
-    public TerrainNode[,] MergeTerrainMaps(List<TerrainNode[,]> TerrainFeatures){
+    public TerrainNode[,] MergeTerrainMaps(List<TerrainNode[,]> TerrainFeatures, bool filter=true){
         
         /*
         Function for merging terrain heightMaps
@@ -331,66 +331,76 @@ public class HeightMatrix : ScriptableObject
         // -- Kernel filtering to merge terrain --
 
         // Write merged heightmap data to new matrix
+        if (filter) {
+            var filteredHeightMap = new float[xSize, zSize];
 
-        var filteredHeightMap = new float[xSize, zSize];
-
-        for (int x = 0; x < xSize; x++){
-            for (int z = 0; z < zSize; z++){
-                filteredHeightMap[x,z] = 0;
-            }
-        }
-        // Define kernel data
-        kernel = new float[3,3] { 
-            {1, 1, 1},
-            {1, 1, 1},
-            {1, 1, 1,}
-            };
-        kernelSize = kernel.GetLength(0);
-        convolutedValues = new float[kernelSize, kernelSize];
-
-        // Limits to avoid array out of bounds errors
-        xLimit = Mathf.FloorToInt(kernel.GetLength(0));
-        zLimit = Mathf.FloorToInt(kernel.GetLength(1));
-
-        // Run over all the points on the map
-        for (int x = xLimit; x < (xSize - xLimit); x++){
-            for (int z = zLimit; z < (zSize - zLimit); z++){
-                if (mergedHeightMap[x,z].type == "river"){
-                    // Loop through kernel
-                    for (int i = 0; i < kernelSize; i++){
-                        for (int j = 0; j < kernelSize; j++){
-                            // Calculate convoluted values
-                            convolutedValues[i,j] = mergedHeightMap[x + (i - xLimit), z + (i - zLimit)].height * kernel[i,j];
-
-                        }
-                    }
-                    // Average the convoluted values
-                    sum = 0;
-                    for (int i = 0; i < kernelSize; i++){
-                        for (int j = 0; j < kernelSize; j++){
-                            // Calculate convoluted values
-                            sum += convolutedValues[i,j];
-
-                        }
-                    }
-                    sum /= Mathf.Pow(kernelSize, 2);
-
-                    // Apply the avg to the points height
-                    filteredHeightMap[x,z] = sum;
-                }
-                else {
-                    filteredHeightMap[x,z] = mergedHeightMap[x,z].height;
+            for (int x = 0; x < xSize; x++){
+                for (int z = 0; z < zSize; z++){
+                    filteredHeightMap[x,z] = 0;
                 }
             }
-        
-        }
-        
-        for (int x = 0; x < xSize; x++){
-            for (int z = 0; z < zSize; z++){
-                mergedHeightMap[x,z].height = filteredHeightMap[x,z];
+            // Define kernel data
+            // kernel = new float[3, 3] {
+            //     {1, 1, 1},
+            //     {1, 1, 1},
+            //     {1, 1, 1,}
+            //     };
+
+            kernel = new float[5,5] { 
+                {1/273, 4/273, 7/273, 4/273, 1/273}, 
+                {4/273, 16/273, 26/273, 16/273, 4/273},
+                {7/273, 26/273, 41/273, 26/273, 7/273},
+                {4/273, 16/273, 26/273, 16/273, 4/273},
+                {1/273, 4/273, 7/273, 4/273, 1/273}
+                };
+            
+
+            kernelSize = kernel.GetLength(0);
+            convolutedValues = new float[kernelSize, kernelSize];
+
+            // Limits to avoid array out of bounds errors
+            xLimit = Mathf.FloorToInt(kernel.GetLength(0));
+            zLimit = Mathf.FloorToInt(kernel.GetLength(1));
+
+            // Run over all the points on the map
+            for (int x = xLimit; x < (xSize - xLimit); x++){
+                for (int z = zLimit; z < (zSize - zLimit); z++){
+                    if (mergedHeightMap[x,z].type == "river"){
+                        // Loop through kernel
+                        for (int i = 0; i < kernelSize; i++){
+                            for (int j = 0; j < kernelSize; j++){
+                                // Calculate convoluted values
+                                convolutedValues[i,j] = mergedHeightMap[x + (i - xLimit), z + (i - zLimit)].height * kernel[i,j];
+
+                            }
+                        }
+                        // Average the convoluted values
+                        sum = 0;
+                        for (int i = 0; i < kernelSize; i++){
+                            for (int j = 0; j < kernelSize; j++){
+                                // Calculate convoluted values
+                                sum += convolutedValues[i,j];
+
+                            }
+                        }
+                        sum /= Mathf.Pow(kernelSize, 2);
+
+                        // Apply the avg to the points height
+                        filteredHeightMap[x,z] = sum;
+                    }
+                    else {
+                        filteredHeightMap[x,z] = mergedHeightMap[x,z].height;
+                    }
+                }
+            
+            }
+            
+            for (int x = 0; x < xSize; x++){
+                for (int z = 0; z < zSize; z++){
+                    mergedHeightMap[x,z].height = filteredHeightMap[x,z];
+                }
             }
         }
-
 
         return mergedHeightMap;
 
