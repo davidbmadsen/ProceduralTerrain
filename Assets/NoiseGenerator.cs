@@ -11,7 +11,7 @@ public class NoiseGenerator : ScriptableObject
 
         float noiseval = 0f;
         float lacunarity = 2f;                              // Increases the frequency proportional to octaves
-        float persistence = 1/lacunarity;                           // Decrease amplitude proportional to octaves  
+        float persistence = 1/lacunarity;                   // Decrease amplitude proportional to octaves  
         
 
         // Generate noise stack, looping through each octave

@@ -16,7 +16,7 @@ public class TerrainNode : ScriptableObject
     public string type;
 
     // Node constructor - Initializes the node with input data
-    public void Node(int x, int z, float height, string type){
+    public void Create(int x, int z, float height, string type){
         this.x = x;
         this.z = z;
         this.height = height;

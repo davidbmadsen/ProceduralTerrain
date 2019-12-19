@@ -4,7 +4,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(MeshFilter))]
 public class MeshGenerator : MonoBehaviour
-{   
+{
     // Objects used to generate terrain features
     NoiseGenerator noiseGen;
     HeightMatrix heightMatrix;
@@ -25,7 +25,7 @@ public class MeshGenerator : MonoBehaviour
         // Instantiate objects used to draw the mesh
         mesh = new Mesh();
         GetComponent<MeshFilter>().mesh = mesh;
-        
+
 
         CreateMesh();       // Generate the terrain mesh
         UpdateMesh();       // Updates mesh with vertices
@@ -38,27 +38,25 @@ public class MeshGenerator : MonoBehaviour
 
         // vertices = riverGen.GenerateRiver(xSize, zSize);
         vertices = new Vector3[(xSize + 1) * (zSize + 1)];
-        
+
 
         // Instantiate height matrix
         heightMatrix = ScriptableObject.CreateInstance<HeightMatrix>();
-        
-        // Generate the empty terrain height map zeroMap
+
+        // Generate the empty terrain height maps zeroMap
         zeroMapOne = heightMatrix.GenerateZeroMap(xSize, zSize);
         zeroMapTwo = heightMatrix.GenerateZeroMap(xSize, zSize);
-        zeroMapThree = heightMatrix.GenerateZeroMap(xSize, zSize);
 
-        riverMap = heightMatrix.GenerateNaturalRivers(zeroMapOne, 10, 0);
-        //riverMap2 = heightMatrix.GenerateNaturalRivers(zeroMapThree);
-        mountainMap = heightMatrix.GenerateNoisyMountains(zeroMapTwo);
+        riverMap = heightMatrix.GenerateNaturalRivers(zeroMapOne, -10, 0);
+        mountainMap = heightMatrix.GeneratePyramidMountains(zeroMapTwo);
 
 
         List<TerrainNode[,]> TerrainFeatures = new List<TerrainNode[,]> { riverMap, mountainMap };
-        
-        
+
+
         // Use merge function to merge mountains and river 
         heightMap = heightMatrix.MergeTerrainMaps(TerrainFeatures, true);
-        
+
         // --- Vector creation part (note to self: dont touch) ---
 
         // Generate vectors for terrain from heightmap matrix
@@ -66,15 +64,15 @@ public class MeshGenerator : MonoBehaviour
         for (int i = 0, z = 0; z <= zSize; z++)
         {
             for (int x = 0; x <= xSize; x++)
-            {   
+            {
                 // Extract each point from the matrix and create a Vector3 for vertices
-                height = heightMap[x,z].height;
+                height = heightMap[x, z].height;
                 vertices[i] = new Vector3(x, height, z);
                 i++;
             }
         }
-        
-        // Code courtesy of Brackeys (http:www.youtube.com/watch?v=something)
+
+        // Code courtesy of Brackeys (https://www.youtube.com/watch?v=eJEpeUH1EMg)
         // Indices to keep track of triangles and vertices
         int vert = 0;
         int tris = 0;
@@ -100,7 +98,7 @@ public class MeshGenerator : MonoBehaviour
 
             vert++;
         }
-        
+
     }
 
     void UpdateMesh()
@@ -109,7 +107,7 @@ public class MeshGenerator : MonoBehaviour
 
         mesh.vertices = vertices;   // Sets the mesh vertices to be the points in "vertices" array
         mesh.triangles = triangles; // Sets the triangles correspondingly
-    
+
         mesh.RecalculateNormals();  // Fix lighting
     }
 }

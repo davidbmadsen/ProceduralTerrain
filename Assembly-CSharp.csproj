@@ -58,8 +58,6 @@
      <Compile Include="Assets\HeightMatrixGenerator.cs" />
      <Compile Include="Assets\MeshGenerator.cs" />
      <Compile Include="Assets\NoiseGenerator.cs" />
-     <Compile Include="Assets\RiverGen2.cs" />
-     <Compile Include="Assets\RiverGenerator.cs" />
      <Compile Include="Assets\TerrainNode.cs" />
  <Reference Include="Unity.Timeline.Editor">
  <HintPath>D:/GitHub/ProceduralTerrain/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
